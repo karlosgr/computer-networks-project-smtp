@@ -10,17 +10,18 @@ class SmtpClientOption:
 
     def __init__(
         self,
-        smtp_server: str,
-        smtp_port: int,
-        secure: bool,
-        username: str,
-        password: str,
+        smtp_server: str = "",
+        smtp_port: int = 25,
+        secure: bool = False,
+        username: str = "",
+        password: str = "",
     ):
         self.smtp_server: str = smtp_server
         self.smtp_port: int = smtp_port
         self.secure: bool = secure
         self.username: str = username
         self.password: str = password
+
 
 class SmtpClientServices:
     """Implements some mail services from a smtp client"""
@@ -53,6 +54,19 @@ class SmtpClientServices:
                 # send the EHLO command
                 client_socket.sendall(b"EHLO\r\n")
                 print(client_socket.recv(1024).decode())
+
+                if self.secure:
+
+                    # send the starttls command
+                    client_socket.sendall(b"STARTTLS\r\n")
+                    print(client_socket.recv(1024).decode())
+
+                    # wrap the socket with ssl
+                    context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
+                    client_socket = context.wrap_socket(
+                        client_socket,
+                        server_hostname=self.smtp_server,
+                    )
                 #
                 # AUTHENTICATION
                 #
@@ -99,5 +113,3 @@ class SmtpClientServices:
             except socket.error as sock_error:
                 print(sock_error)
                 return sock_error
-
-
