@@ -1,16 +1,32 @@
 import flet as ft
 import src.services.mail_services as ems
+import src.services.file_services as fs
 
 
 def mail_page(page: ft.Page, options: ems.SmtpClientOption, function):
     """Mail Page"""
 
+    print(options.smtp_server)
     email_service = ems.SmtpClientServices(options=options)
 
     mail_from: str = ""
     mail_to: str = ""
     subject: str = ""
     body: str = ""
+
+    selected_file: ft.FilePickerFileType
+
+    is_file_selected: bool = False
+
+    def pick_file_result(e: ft.FilePickerResultEvent):
+        nonlocal selected_file
+        selected_file = e.files[0]
+        nonlocal is_file_selected
+        is_file_selected = True
+
+    file_picker = ft.FilePicker(on_result=pick_file_result)
+
+    page.overlay.append(file_picker)
 
     text = ft.Text(
         "",
@@ -36,12 +52,19 @@ def mail_page(page: ft.Page, options: ems.SmtpClientOption, function):
         nonlocal body
         body = str(control.control.value)
 
-    async def send_mail():
-        error = await email_service.send_mail(
+    def pick_file(_):
+        print("picking file")
+        file_picker.pick_files(allow_multiple=True)
+
+    def send_mail(_):
+        error = email_service.send_mail(
             receiver_mail=mail_to,
             sender_mail=mail_from,
             subject=subject,
             body=body,
+            attachments_files=(
+                fs.encode_file(file_path=selected_file) if is_file_selected else ""
+            ),
         )
         if error is None:
             text.value = "Sended Email"
@@ -132,6 +155,18 @@ def mail_page(page: ft.Page, options: ems.SmtpClientOption, function):
                             min_lines=1,
                             max_lines=8,
                             on_change=on_body_change,
+                        ),
+                    ),
+                    ft.Container(
+                        height=20,
+                    ),
+                    ft.Container(
+                        width=400,
+                        content=ft.IconButton(
+                            height=50,
+                            on_click=pick_file,
+                            icon=ft.icons.UPLOAD_FILE,
+                            content=ft.Text("Select File"),
                         ),
                     ),
                     ft.Container(
